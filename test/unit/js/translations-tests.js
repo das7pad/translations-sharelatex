@@ -25,6 +25,7 @@ describe('translations', function() {
         'accept-language': ''
       },
       originalUrl: '/login',
+      query: {},
       url: '/login'
     }
     this.res = {}
