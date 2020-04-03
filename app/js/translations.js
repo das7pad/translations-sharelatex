@@ -31,6 +31,10 @@ module.exports = {
       supportedLngs: availableLngs
     })
     const setLangBasedOnDomainMiddlewear = function(req, res, next) {
+      res.locals.getTranslationUrl = spec => {
+        return new URL(req.originalUrl, spec.url).href
+      }
+
       if (req.query.setLng) {
         // setLng is handled by i18n
         // Developers/Users can override the language per request
@@ -47,6 +51,12 @@ module.exports = {
       next()
     }
     function setLangBasedOnSessionOrQueryParam(req, res, next) {
+      res.locals.getTranslationUrl = spec => {
+        const url = new URL(req.originalUrl, spec.url)
+        url.searchParams.append('setGlobalLng', spec.lngCode)
+        return url.href
+      }
+
       if (req.query.setGlobalLng && subdomainLang.has(req.query.setGlobalLng)) {
         const { lngCode, url } = subdomainLang.get(req.query.setGlobalLng)
         req.session.lng = lngCode

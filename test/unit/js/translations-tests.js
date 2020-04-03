@@ -31,6 +31,7 @@ describe('translations', function() {
       url: '/login'
     }
     this.res = {
+      locals: {},
       redirect: sinon.stub()
     }
   })
@@ -78,6 +79,49 @@ describe('translations', function() {
               done()
             }
           )
+        })
+      })
+    })
+
+    describe('getTranslationUrl', function() {
+      describe('with not query params', function() {
+        beforeEach(function(done) {
+          this.req.originalUrl = '/login'
+          this.translations.expressMiddlewear(this.req, this.res, () => {
+            this.translations.setLangBasedOnDomainMiddlewear(
+              this.req,
+              this.res,
+              done
+            )
+          })
+        })
+        it('should set the setGlobalLng query param', function() {
+          expect(
+            this.res.locals.getTranslationUrl({
+              lngCode: 'da',
+              url: 'https://da.sharelatex.com'
+            })
+          ).to.equal('https://da.sharelatex.com/login')
+        })
+      })
+      describe('with additional query params', function() {
+        beforeEach(function(done) {
+          this.req.originalUrl = '/login?someKey=someValue'
+          this.translations.expressMiddlewear(this.req, this.res, () => {
+            this.translations.setLangBasedOnDomainMiddlewear(
+              this.req,
+              this.res,
+              done
+            )
+          })
+        })
+        it('should preserve the query param', function() {
+          expect(
+            this.res.locals.getTranslationUrl({
+              lngCode: 'da',
+              url: 'https://da.sharelatex.com'
+            })
+          ).to.equal('https://da.sharelatex.com/login?someKey=someValue')
         })
       })
     })
@@ -222,6 +266,51 @@ describe('translations', function() {
         })
         it('should set the requested lang permanent', function() {
           this.req.session.lng.should.equal('da')
+        })
+      })
+
+      describe('getTranslationUrl', function() {
+        describe('with not query params', function() {
+          beforeEach(function(done) {
+            this.req.originalUrl = '/login'
+            this.translations.expressMiddlewear(this.req, this.res, () => {
+              this.translations.setLangBasedOnDomainMiddlewear(
+                this.req,
+                this.res,
+                done
+              )
+            })
+          })
+          it('should set the setGlobalLng query param', function() {
+            expect(
+              this.res.locals.getTranslationUrl({
+                lngCode: 'da',
+                url: 'https://www.sharelatex.com'
+              })
+            ).to.equal('https://www.sharelatex.com/login?setGlobalLng=da')
+          })
+        })
+        describe('with additional query params', function() {
+          beforeEach(function(done) {
+            this.req.originalUrl = '/login?someKey=someValue'
+            this.translations.expressMiddlewear(this.req, this.res, () => {
+              this.translations.setLangBasedOnDomainMiddlewear(
+                this.req,
+                this.res,
+                done
+              )
+            })
+          })
+          it('should preserve the query param', function() {
+            expect(
+              this.res.locals.getTranslationUrl({
+                lngCode: 'da',
+                url: 'https://www.sharelatex.com'
+              })
+            ).to.equal(
+              'https://www.sharelatex.com/login?someKey=someValue&setGlobalLng=da'
+            )
+          })
         })
       })
     })
