@@ -6,6 +6,20 @@ const { expect } = require('chai')
 const sinon = require('sinon')
 
 describe('translations', function() {
+  const subdomainLang = Object.fromEntries(
+    ['cn', 'da', 'de', 'es', 'fr', 'pt', 'ru']
+      .map(lang => {
+        return [
+          lang,
+          {
+            lngCode: lang,
+            url: `https://${lang}.sharelatex.com`
+          }
+        ]
+      })
+      .concat([['www', { lngCode: 'en', url: 'https://www.sharelatex.com' }]])
+  )
+
   beforeEach(function() {
     this.translationsModule = SandboxedModule.require(modulePath, {
       globals: {
@@ -14,11 +28,7 @@ describe('translations', function() {
     })
 
     const opts = {
-      subdomainLang: {
-        www: { lngCode: 'en', url: 'https://www.sharelatex.com' },
-        fr: { lngCode: 'fr', url: 'https://fr.sharelatex.com' },
-        da: { lngCode: 'da', url: 'https://da.sharelatex.com' }
-      }
+      subdomainLang
     }
     this.translations = this.translationsModule.setup(opts)
     this.req = {
@@ -34,6 +44,90 @@ describe('translations', function() {
       locals: {},
       redirect: sinon.stub()
     }
+    this.appName = `Overleaf Dev (${Math.random()})`
+
+    // taken from web/app/src/infrastructure/ExpressLocals.js
+    this.res.locals.translate = (key, vars) => {
+      vars = vars || {}
+      vars.appName = this.appName
+      return this.req.i18n.translate(key, vars)
+    }
+  })
+
+  describe('i18n.translate', function() {
+    function cloneVars(vars) {
+      // i18n adds the used language as `.lng` into the vars when there is no
+      //  exact locale for a given language available. this in turn corrupts
+      //  following translations with the same context -- they are using the
+      //  `.lng` as language:
+      // vars={}; translate('ENOENT', vars); vars.lng === 'someLang'
+      if (typeof vars !== 'object') return vars
+      return JSON.parse(JSON.stringify(vars))
+    }
+    function getLocale(lang, key) {
+      return require(`../../../locales/${lang}.json`)[key]
+    }
+    function getLocaleWithFallback(lang, key) {
+      return getLocale(lang, key) || getLocale('en', key) || ''
+    }
+
+    beforeEach(function() {
+      this.mockedTranslate = (lang, key, vars) => {
+        const bareLocale = getLocaleWithFallback(lang, key)
+        vars = vars || {}
+        vars.appName = this.appName
+        return Object.entries(vars).reduce((translated, keyValue) => {
+          return translated.replace(`__${keyValue[0]}__`, keyValue[1])
+        }, bareLocale)
+      }
+    })
+    ;[
+      {
+        desc: 'when the locale is plain text',
+        key: 'email'
+      },
+      {
+        desc: 'when there is html in the locale',
+        key: 'track_changes_is_on'
+      },
+      {
+        desc: 'when there are additional variables',
+        key: 'register_to_edit_template',
+        vars: { templateName: `[${Math.random()}]` }
+      },
+      {
+        desc: 'when there is html in the vars',
+        key: 'click_here_to_view_sl_in_lng',
+        vars: { lngName: `<strong>${Math.random()}</strong>` }
+      }
+    ].forEach(testSpec => {
+      describe(testSpec.desc, function() {
+        Object.values(subdomainLang).forEach(langSpec => {
+          it(`should translate for lang=${langSpec.lngCode}`, function(done) {
+            this.req.headers.host = new URL(langSpec.url).host
+            this.translations.expressMiddlewear(this.req, this.req, () => {
+              this.translations.setLangBasedOnDomainMiddlewear(
+                this.req,
+                this.res,
+                () => {
+                  const actual = this.res.locals.translate(
+                    testSpec.key,
+                    cloneVars(testSpec.vars)
+                  )
+                  const expected = this.mockedTranslate(
+                    langSpec.lngCode,
+                    testSpec.key,
+                    cloneVars(testSpec.vars)
+                  )
+                  actual.should.equal(expected)
+                  done()
+                }
+              )
+            })
+          })
+        })
+      })
+    })
   })
 
   describe('setLangBasedOnDomainMiddlewear', function() {
