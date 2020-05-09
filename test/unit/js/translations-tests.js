@@ -1,7 +1,7 @@
 require('chai').should()
 const SandboxedModule = require('sandboxed-module')
 const path = require('path')
-const modulePath = path.join(__dirname, '../../../app/js/translations.js')
+const modulePath = path.join(__dirname, '../../../index.js')
 const { expect } = require('chai')
 const sinon = require('sinon')
 

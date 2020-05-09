@@ -16,13 +16,9 @@ module.exports = {
     const fallbackLng = options.defaultLng || 'en'
 
     i18n.init({
-      resGetPath: path.resolve(__dirname, '../../', 'locales/__lng__.json'),
+      resGetPath: path.resolve(__dirname, 'locales/__lng__.json'),
       saveMissing: true,
-      resSetPath: path.resolve(
-        __dirname,
-        '../../',
-        'locales/missing-__lng__.json'
-      ),
+      resSetPath: path.resolve(__dirname, 'locales/missing-__lng__.json'),
       sendMissingTo: 'fallback',
       fallbackLng: fallbackLng,
       detectLngFromHeaders: true,
