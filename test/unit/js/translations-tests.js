@@ -61,9 +61,7 @@ describe('translations', function() {
       url: '/login'
     }
     this.res = {
-      setHeader() {
-        console.error(arguments)
-      },
+      setHeader() {},
       locals: {},
       redirect: sinon.stub()
     }
