@@ -86,6 +86,9 @@ module.exports = {
     function setLang(req, res, next) {
       if (req.query.setLng) {
         // Developers/Users can override the language per request
+        if (!availableLngs.includes(req.query.setLng)) {
+          return res.status(400).json({ message: 'invalid lngCode' })
+        }
         req.language = req.query.setLng
         return next()
       }
