@@ -41,6 +41,7 @@ describe('translations', function() {
       url: '/login'
     }
     this.res = {
+      setHeader() {console.error(arguments)},
       locals: {},
       redirect: sinon.stub()
     }
@@ -50,7 +51,7 @@ describe('translations', function() {
     this.res.locals.translate = (key, vars) => {
       vars = vars || {}
       vars.appName = this.appName
-      return this.req.i18n.translate(key, vars)
+      return this.req.i18n.t(key, vars)
     }
   })
 
