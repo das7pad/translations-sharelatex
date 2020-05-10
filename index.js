@@ -42,14 +42,13 @@ module.exports = {
       )
     }
 
-    const setLangBasedOnDomainMiddleware = function(req, res, next) {
+    function setLangBasedOnDomainMiddleware(req, res, next) {
       res.locals.getTranslationUrl = spec => {
         return new URL(req.originalUrl, spec.url).href
       }
 
-      const { host } = req.headers
       // prefer host and then fallback language over browser hint
-      req.language = availableHosts.get(host) || fallbackLng
+      req.language = availableHosts.get(req.headers.host) || fallbackLng
       next()
     }
     function setLangBasedOnSessionOrQueryParam(req, res, next) {
