@@ -85,7 +85,10 @@ describe('translations', function() {
         vars = vars || {}
         vars.appName = this.appName
         return Object.entries(vars).reduce((translated, keyValue) => {
-          return translated.replace(`__${keyValue[0]}__`, keyValue[1])
+          return translated.replace(
+            new RegExp(`__${keyValue[0]}__`, 'g'),
+            keyValue[1]
+          )
         }, bareLocale)
       }
     })

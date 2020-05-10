@@ -35,7 +35,10 @@ module.exports = {
       return fallback
     }
     function substitute(locale, keyValuePair) {
-      return locale.replace(`__${keyValuePair[0]}__`, keyValuePair[1])
+      return locale.replace(
+        new RegExp(`__${keyValuePair[0]}__`, 'g'),
+        keyValuePair[1]
+      )
     }
     function translate(locales, key, vars) {
       return Object.entries(vars || {}).reduce(
