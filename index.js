@@ -79,24 +79,20 @@ module.exports = {
       typeof options.singleDomainMultipleLng === 'boolean'
         ? options.singleDomainMultipleLng
         : availableHosts.size === 1 && availableLngCodes.length !== 1
-    const _setLang = singleDomainMultipleLng
+    const setLang = singleDomainMultipleLng
       ? setLangBasedOnSessionOrQueryParam
       : setLangBasedOnDomainMiddleware
 
-    function setLang(req, res, next) {
-      if (req.query.setLng) {
-        // Developers/Users can override the language per request
-        if (!availableLngCodes.includes(req.query.setLng)) {
-          return res.status(400).json({ message: 'invalid lngCode' })
-        }
-        req.language = req.query.setLng
-        return next()
-      }
-      _setLang(req, res, next)
-    }
-
     function middleware(req, res, next) {
       setLang(req, res, function() {
+        if (req.query.setLng) {
+          // Developers/Users can override the language per request
+          if (!availableLngCodes.includes(req.query.setLng)) {
+            return res.status(400).json({ message: 'invalid lngCode' })
+          }
+          req.language = req.query.setLng
+        }
+
         const browserLanguage = req.acceptsLanguages(availableLngCodes)
         if (browserLanguage && browserLanguage !== req.language) {
           // 'accept-language' header and fallbackLng mismatch
@@ -105,8 +101,8 @@ module.exports = {
           // 'accept-language' header and ?setLng mismatch
           req.showUserOtherLng = browserLanguage
         }
-        req.lng = req.locale = req.language
 
+        req.lng = req.locale = req.language
         req.i18n = {}
         req.i18n.t = req.i18n.translate = translate.bind(
           null,

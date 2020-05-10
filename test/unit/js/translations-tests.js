@@ -130,6 +130,26 @@ describe('translations', function() {
         })
       })
     })
+
+    describe('when setLng is set and the host header is www', function() {
+      Object.values(subdomainLang).forEach(langSpec => {
+        it(`should translate for lang=${langSpec.lngCode}`, function(done) {
+          this.req.headers.host = new URL(subdomainLang.www.url).host
+          this.req.query.setLng = langSpec.lngCode
+          this.translations(this.req, this.res, () => {
+            const actual = this.res.locals.translate(
+              'beta_program_badge_description'
+            )
+            const expected = this.mockedTranslate(
+              langSpec.lngCode,
+              'beta_program_badge_description'
+            )
+            actual.should.equal(expected)
+            done()
+          })
+        })
+      })
+    })
   })
 
   describe('setLangBasedOnDomainMiddleware', function() {
