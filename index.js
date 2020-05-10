@@ -34,10 +34,12 @@ module.exports = {
       locales.set(key, fallback)
       return fallback
     }
+    function substitute(locale, keyValuePair) {
+      return locale.replace(`__${keyValuePair[0]}__`, keyValuePair[1])
+    }
     function translate(locales, key, vars) {
       return Object.entries(vars || {}).reduce(
-        (locale, keyValuePair) =>
-          locale.replace(`__${keyValuePair[0]}__`, keyValuePair[1]),
+        substitute,
         getLocale(locales, key)
       )
     }
