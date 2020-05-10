@@ -4,7 +4,21 @@ const path = require('path')
 const modulePath = path.join(__dirname, '../../../index.js')
 const { expect } = require('chai')
 const sinon = require('sinon')
-const accepts = require('accepts')
+let accepts, wrapForOldSignature
+try {
+  accepts = require('accepts')
+  wrapForOldSignature = middleware => middleware
+} catch (e) {
+  // backwards compat
+  wrapForOldSignature = middleware => {
+    const { expressMiddlewear, setLangBasedOnDomainMiddlewear } = middleware
+    return (req, res, next) => {
+      expressMiddlewear(req, res, () => {
+        setLangBasedOnDomainMiddlewear(req, res, next)
+      })
+    }
+  }
+}
 
 describe('translations', function() {
   const subdomainLang = Object.fromEntries(
@@ -31,7 +45,7 @@ describe('translations', function() {
     const opts = {
       subdomainLang
     }
-    this.translations = this.translationsModule.setup(opts)
+    this.translations = wrapForOldSignature(this.translationsModule.setup(opts))
     this.req = {
       acceptsLanguages: function() {
         const accept = accepts(this)
@@ -253,7 +267,9 @@ describe('translations', function() {
             da: { lngCode: 'da', url: 'https://www.sharelatex.com' }
           }
         }
-        this.translations = this.translationsModule.setup(opts)
+        this.translations = wrapForOldSignature(
+          this.translationsModule.setup(opts)
+        )
       })
 
       describe('when nothing is set', function() {
@@ -323,8 +339,9 @@ describe('translations', function() {
 
       function checkLang(lng) {
         describe(`setGlobalLng=${lng}`, function() {
-          beforeEach(function() {
+          beforeEach(function(done) {
             this.req.query.setGlobalLng = lng
+            this.res.redirect.callsFake(() => done())
             this.translations(this.req, this.res, () => {})
           })
           it('should send the user back', function() {
@@ -339,9 +356,10 @@ describe('translations', function() {
       checkLang('fr')
 
       describe('with additional query params', function() {
-        beforeEach(function() {
+        beforeEach(function(done) {
           this.req.originalUrl = '/login?setGlobalLng=da&someKey=someValue'
           this.req.query.setGlobalLng = 'da'
+          this.res.redirect.callsFake(() => done())
           this.translations(this.req, this.res, () => {})
         })
         it('should send the user back and preserve the query param', function() {
