@@ -1,3 +1,4 @@
+const fs = require('fs')
 const i18n = require('i18next')
 const middleware = require('i18next-http-middleware')
 const path = require('path')
@@ -15,6 +16,45 @@ module.exports = {
     })
 
     const fallbackLng = options.defaultLng || 'en'
+    const allLocales = new Map(
+      availableLngs.map(lang => {
+        return [
+          lang,
+          new Map(
+            Object.entries(
+              JSON.parse(fs.readFileSync(`${__dirname}/locales/${lang}.json`))
+            )
+          )
+        ]
+      })
+    )
+    const fallbackLocales = allLocales.get(fallbackLng)
+    function getLocaleFromFallback(key) {
+      return fallbackLocales.has(key) ? fallbackLocales.get(key) : key
+    }
+    function getLocale(locales, key) {
+      if (locales.has(key)) return locales.get(key)
+
+      const fallback = getLocaleFromFallback(key)
+      locales.set(key, fallback)
+      return fallback
+    }
+
+    function translate(locales, key, vars) {
+      const bareLocale = getLocale(locales, key)
+      if (!vars) return bareLocale
+      return Object.entries(vars).reduce((translated, keyValue) => {
+        return translated.replace(`__${keyValue[0]}__`, keyValue[1])
+      }, bareLocale)
+    }
+    function overrideTranslate(mw) {
+      return function(req, res, next) {
+        mw(req, res, function() {
+          req.i18n.t = translate.bind(null, allLocales.get(req.language))
+          next()
+        })
+      }
+    }
 
     i18n
       .use(middleware.LanguageDetector)
@@ -92,9 +132,11 @@ module.exports = {
 
     return {
       expressMiddlewear: middleware.handle(i18n),
-      setLangBasedOnDomainMiddlewear: singleDomainMultipleLng
-        ? setLangBasedOnSessionOrQueryParam
-        : setLangBasedOnDomainMiddlewear,
+      setLangBasedOnDomainMiddlewear: overrideTranslate(
+        singleDomainMultipleLng
+          ? setLangBasedOnSessionOrQueryParam
+          : setLangBasedOnDomainMiddlewear
+      ),
       i18n
     }
   }
