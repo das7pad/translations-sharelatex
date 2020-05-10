@@ -14,16 +14,14 @@ module.exports = {
 
     const fallbackLng = options.defaultLng || 'en'
     const allLocales = new Map(
-      availableLngs.map(lang => {
-        return [
-          lang,
-          new Map(
-            Object.entries(
-              JSON.parse(fs.readFileSync(`${__dirname}/locales/${lang}.json`))
-            )
+      availableLngs.map(lang => [
+        lang,
+        new Map(
+          Object.entries(
+            JSON.parse(fs.readFileSync(`${__dirname}/locales/${lang}.json`))
           )
-        ]
-      })
+        )
+      ])
     )
     const fallbackLocales = allLocales.get(fallbackLng)
     function getLocaleFromFallback(key) {
