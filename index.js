@@ -54,6 +54,7 @@ module.exports = {
     function setLangBasedOnSessionOrQueryParam(req, res, next) {
       res.locals.getTranslationUrl = spec => {
         const url = new URL(req.originalUrl, spec.url)
+        // add the setGlobalLng query parameter while preserving other params
         url.searchParams.append('setGlobalLng', spec.lngCode)
         return url.href
       }
@@ -61,6 +62,7 @@ module.exports = {
       if (req.query.setGlobalLng && subdomainLang.has(req.query.setGlobalLng)) {
         const { lngCode, url } = subdomainLang.get(req.query.setGlobalLng)
         req.session.lng = lngCode
+        // cleanup the setGlobalLng query parameter and preserve other params
         const parsedURL = new URL(req.originalUrl, url)
         parsedURL.searchParams.delete('setGlobalLng')
         return res.redirect(parsedURL.pathname + parsedURL.search)
@@ -112,6 +114,7 @@ module.exports = {
       })
     }
 
+    // backwards compatibility
     middleware.expressMiddlewear = middleware
     middleware.setLangBasedOnDomainMiddlewear = (req, res, next) => next()
     return middleware
