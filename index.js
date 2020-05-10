@@ -5,16 +5,16 @@ module.exports = {
   setup(options) {
     options = options || {}
     const subdomainLang = new Map(Object.entries(options.subdomainLang || {}))
-    const availableLngs = []
+    const availableLngCodes = []
     const availableHosts = new Map()
     subdomainLang.forEach(function(spec) {
-      availableLngs.push(spec.lngCode)
+      availableLngCodes.push(spec.lngCode)
       availableHosts.set(new URL(spec.url).host, spec.lngCode)
     })
 
     const fallbackLng = options.defaultLng || 'en'
     const allLocales = new Map(
-      availableLngs.map(lang => [
+      availableLngCodes.map(lang => [
         lang,
         new Map(
           Object.entries(
@@ -76,7 +76,7 @@ module.exports = {
     const singleDomainMultipleLng =
       typeof options.singleDomainMultipleLng === 'boolean'
         ? options.singleDomainMultipleLng
-        : availableHosts.size === 1 && availableLngs.length !== 1
+        : availableHosts.size === 1 && availableLngCodes.length !== 1
     const _setLang = singleDomainMultipleLng
       ? setLangBasedOnSessionOrQueryParam
       : setLangBasedOnDomainMiddleware
@@ -84,7 +84,7 @@ module.exports = {
     function setLang(req, res, next) {
       if (req.query.setLng) {
         // Developers/Users can override the language per request
-        if (!availableLngs.includes(req.query.setLng)) {
+        if (!availableLngCodes.includes(req.query.setLng)) {
           return res.status(400).json({ message: 'invalid lngCode' })
         }
         req.language = req.query.setLng
@@ -95,7 +95,7 @@ module.exports = {
 
     function middleware(req, res, next) {
       setLang(req, res, function() {
-        const browserLanguage = req.acceptsLanguages(availableLngs)
+        const browserLanguage = req.acceptsLanguages(availableLngCodes)
         if (browserLanguage && browserLanguage !== req.language) {
           // 'accept-language' header and fallbackLng mismatch
           // 'accept-language' header and host header mismatch
