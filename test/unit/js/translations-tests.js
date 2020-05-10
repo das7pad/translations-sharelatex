@@ -105,7 +105,7 @@ describe('translations', function() {
         Object.values(subdomainLang).forEach(langSpec => {
           it(`should translate for lang=${langSpec.lngCode}`, function(done) {
             this.req.headers.host = new URL(langSpec.url).host
-            this.translations.expressMiddlewear(this.req, this.req, () => {
+            this.translations.expressMiddlewear(this.req, this.res, () => {
               this.translations.setLangBasedOnDomainMiddlewear(
                 this.req,
                 this.res,
@@ -133,7 +133,7 @@ describe('translations', function() {
   describe('setLangBasedOnDomainMiddlewear', function() {
     it('should set the lang to french if the domain is fr', function(done) {
       this.req.headers.host = 'fr.sharelatex.com'
-      this.translations.expressMiddlewear(this.req, this.req, () => {
+      this.translations.expressMiddlewear(this.req, this.res, () => {
         this.translations.setLangBasedOnDomainMiddlewear(
           this.req,
           this.res,
@@ -149,7 +149,7 @@ describe('translations', function() {
       it('should set it to true if the languge based on headers is different to lng', function(done) {
         this.req.headers['accept-language'] = 'da, en-gb;q=0.8, en;q=0.7'
         this.req.headers.host = 'fr.sharelatex.com'
-        this.translations.expressMiddlewear(this.req, this.req, () => {
+        this.translations.expressMiddlewear(this.req, this.res, () => {
           this.translations.setLangBasedOnDomainMiddlewear(
             this.req,
             this.res,
@@ -164,7 +164,7 @@ describe('translations', function() {
       it('should not set prop', function(done) {
         this.req.headers['accept-language'] = 'da, en-gb;q=0.8, en;q=0.7'
         this.req.headers.host = 'da.sharelatex.com'
-        this.translations.expressMiddlewear(this.req, this.req, () => {
+        this.translations.expressMiddlewear(this.req, this.res, () => {
           this.translations.setLangBasedOnDomainMiddlewear(
             this.req,
             this.res,
