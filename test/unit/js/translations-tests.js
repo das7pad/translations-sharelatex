@@ -113,24 +113,18 @@ describe('translations', function() {
         Object.values(subdomainLang).forEach(langSpec => {
           it(`should translate for lang=${langSpec.lngCode}`, function(done) {
             this.req.headers.host = new URL(langSpec.url).host
-            this.translations.expressMiddlewear(this.req, this.res, () => {
-              this.translations.setLangBasedOnDomainMiddlewear(
-                this.req,
-                this.res,
-                () => {
-                  const actual = this.res.locals.translate(
-                    testSpec.key,
-                    cloneVars(testSpec.vars)
-                  )
-                  const expected = this.mockedTranslate(
-                    langSpec.lngCode,
-                    testSpec.key,
-                    cloneVars(testSpec.vars)
-                  )
-                  actual.should.equal(expected)
-                  done()
-                }
+            this.translations(this.req, this.res, () => {
+              const actual = this.res.locals.translate(
+                testSpec.key,
+                cloneVars(testSpec.vars)
               )
+              const expected = this.mockedTranslate(
+                langSpec.lngCode,
+                testSpec.key,
+                cloneVars(testSpec.vars)
+              )
+              actual.should.equal(expected)
+              done()
             })
           })
         })
@@ -138,18 +132,12 @@ describe('translations', function() {
     })
   })
 
-  describe('setLangBasedOnDomainMiddlewear', function() {
+  describe('setLangBasedOnDomainMiddleware', function() {
     it('should set the lang to french if the domain is fr', function(done) {
       this.req.headers.host = 'fr.sharelatex.com'
-      this.translations.expressMiddlewear(this.req, this.res, () => {
-        this.translations.setLangBasedOnDomainMiddlewear(
-          this.req,
-          this.res,
-          () => {
-            this.req.lng.should.equal('fr')
-            done()
-          }
-        )
+      this.translations(this.req, this.res, () => {
+        this.req.lng.should.equal('fr')
+        done()
       })
     })
 
@@ -157,30 +145,18 @@ describe('translations', function() {
       it('should set it to true if the languge based on headers is different to lng', function(done) {
         this.req.headers['accept-language'] = 'da, en-gb;q=0.8, en;q=0.7'
         this.req.headers.host = 'fr.sharelatex.com'
-        this.translations.expressMiddlewear(this.req, this.res, () => {
-          this.translations.setLangBasedOnDomainMiddlewear(
-            this.req,
-            this.res,
-            () => {
-              this.req.showUserOtherLng.should.equal('da')
-              done()
-            }
-          )
+        this.translations(this.req, this.res, () => {
+          this.req.showUserOtherLng.should.equal('da')
+          done()
         })
       })
 
       it('should not set prop', function(done) {
         this.req.headers['accept-language'] = 'da, en-gb;q=0.8, en;q=0.7'
         this.req.headers.host = 'da.sharelatex.com'
-        this.translations.expressMiddlewear(this.req, this.res, () => {
-          this.translations.setLangBasedOnDomainMiddlewear(
-            this.req,
-            this.res,
-            () => {
-              expect(this.req.showUserOtherLng).to.not.exist
-              done()
-            }
-          )
+        this.translations(this.req, this.res, () => {
+          expect(this.req.showUserOtherLng).to.not.exist
+          done()
         })
       })
     })
@@ -189,13 +165,7 @@ describe('translations', function() {
       describe('with not query params', function() {
         beforeEach(function(done) {
           this.req.originalUrl = '/login'
-          this.translations.expressMiddlewear(this.req, this.res, () => {
-            this.translations.setLangBasedOnDomainMiddlewear(
-              this.req,
-              this.res,
-              done
-            )
-          })
+          this.translations(this.req, this.res, done)
         })
         it('should set the setGlobalLng query param', function() {
           expect(
@@ -209,13 +179,7 @@ describe('translations', function() {
       describe('with additional query params', function() {
         beforeEach(function(done) {
           this.req.originalUrl = '/login?someKey=someValue'
-          this.translations.expressMiddlewear(this.req, this.res, () => {
-            this.translations.setLangBasedOnDomainMiddlewear(
-              this.req,
-              this.res,
-              done
-            )
-          })
+          this.translations(this.req, this.res, done)
         })
         it('should preserve the query param', function() {
           expect(
@@ -242,13 +206,7 @@ describe('translations', function() {
 
       describe('when nothing is set', function() {
         beforeEach(function(done) {
-          this.translations.expressMiddlewear(this.req, this.res, () => {
-            this.translations.setLangBasedOnDomainMiddlewear(
-              this.req,
-              this.res,
-              done
-            )
-          })
+          this.translations(this.req, this.res, done)
         })
         it('should not set a lng in the session', function() {
           expect(this.req.session.lng).to.not.exist
@@ -264,13 +222,7 @@ describe('translations', function() {
       describe('when the browser sends hints', function() {
         beforeEach(function(done) {
           this.req.headers['accept-language'] = 'da, en-gb;q=0.8, en;q=0.7'
-          this.translations.expressMiddlewear(this.req, this.res, () => {
-            this.translations.setLangBasedOnDomainMiddlewear(
-              this.req,
-              this.res,
-              done
-            )
-          })
+          this.translations(this.req, this.res, done)
         })
         it('should not set a lng in the session', function() {
           expect(this.req.session.lng).to.not.exist
@@ -287,13 +239,7 @@ describe('translations', function() {
         beforeEach(function(done) {
           this.req.session.lng = 'fr'
           this.req.headers['accept-language'] = 'da, en-gb;q=0.8, en;q=0.7'
-          this.translations.expressMiddlewear(this.req, this.res, () => {
-            this.translations.setLangBasedOnDomainMiddlewear(
-              this.req,
-              this.res,
-              done
-            )
-          })
+          this.translations(this.req, this.res, done)
         })
         it('should preserve lng=fr in the session', function() {
           expect(this.req.session.lng).to.equal('fr')
@@ -310,13 +256,7 @@ describe('translations', function() {
         beforeEach(function(done) {
           this.req.session.lng = 'fr'
           this.req.headers['accept-language'] = 'fr, en-gb;q=0.8, en;q=0.7'
-          this.translations.expressMiddlewear(this.req, this.res, () => {
-            this.translations.setLangBasedOnDomainMiddlewear(
-              this.req,
-              this.res,
-              done
-            )
-          })
+          this.translations(this.req, this.res, done)
         })
         it('should preserve lng=fr in the session', function() {
           expect(this.req.session.lng).to.equal('fr')
@@ -366,13 +306,7 @@ describe('translations', function() {
         describe('with not query params', function() {
           beforeEach(function(done) {
             this.req.originalUrl = '/login'
-            this.translations.expressMiddlewear(this.req, this.res, () => {
-              this.translations.setLangBasedOnDomainMiddlewear(
-                this.req,
-                this.res,
-                done
-              )
-            })
+            this.translations(this.req, this.res, done)
           })
           it('should set the setGlobalLng query param', function() {
             expect(
@@ -386,13 +320,7 @@ describe('translations', function() {
         describe('with additional query params', function() {
           beforeEach(function(done) {
             this.req.originalUrl = '/login?someKey=someValue'
-            this.translations.expressMiddlewear(this.req, this.res, () => {
-              this.translations.setLangBasedOnDomainMiddlewear(
-                this.req,
-                this.res,
-                done
-              )
-            })
+            this.translations(this.req, this.res, done)
           })
           it('should preserve the query param', function() {
             expect(
