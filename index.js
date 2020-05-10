@@ -34,13 +34,12 @@ module.exports = {
       locales.set(key, fallback)
       return fallback
     }
-
     function translate(locales, key, vars) {
-      const bareLocale = getLocale(locales, key)
-      if (!vars) return bareLocale
-      return Object.entries(vars).reduce((translated, keyValue) => {
-        return translated.replace(`__${keyValue[0]}__`, keyValue[1])
-      }, bareLocale)
+      return Object.entries(vars || {}).reduce(
+        (locale, keyValuePair) =>
+          locale.replace(`__${keyValuePair[0]}__`, keyValuePair[1]),
+        getLocale(locales, key)
+      )
     }
 
     const setLangBasedOnDomainMiddleware = function(req, res, next) {
