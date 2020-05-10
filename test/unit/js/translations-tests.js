@@ -150,6 +150,31 @@ describe('translations', function() {
         })
       })
     })
+    describe('perf', function() {
+      describe('translate all keys (~40k items)', function() {
+        let allKeys = Object.keys(require('../../../locales/en.json'))
+        Array.from({ length: 5 }).forEach(() => {
+          allKeys = allKeys.concat(allKeys)
+        })
+        Object.values(subdomainLang).forEach(langSpec => {
+          it(`should translate for lang=${langSpec.lngCode}`, function(done) {
+            this.req.headers.host = new URL(subdomainLang.www.url).host
+            this.req.query.setLng = langSpec.lngCode
+            this.translations(this.req, this.res, () => {
+              for (const key of allKeys) {
+                const actual = [key, this.res.locals.translate(key)]
+                const expected = [
+                  key,
+                  this.mockedTranslate(langSpec.lngCode, key)
+                ]
+                actual.should.deep.equal(expected)
+              }
+              done()
+            })
+          })
+        })
+      })
+    })
   })
 
   describe('setLangBasedOnDomainMiddleware', function() {
