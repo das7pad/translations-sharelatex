@@ -52,8 +52,7 @@ module.exports = {
 
       const { host } = req.headers
       // prefer host and then fallback language over browser hint
-      req.language =
-        (availableHosts.has(host) && availableHosts.get(host)) || fallbackLng
+      req.language = availableHosts.get(host) || fallbackLng
       next()
     }
     function setLangBasedOnSessionOrQueryParam(req, res, next) {
@@ -72,7 +71,7 @@ module.exports = {
       }
 
       // prefer session and then fallback language over browser hint
-      req.language = (req.session.lng && req.session.lng) || fallbackLng
+      req.language = req.session.lng || fallbackLng
       next()
     }
 
