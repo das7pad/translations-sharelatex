@@ -1,7 +1,4 @@
 const fs = require('fs')
-const i18n = require('i18next')
-const middleware = require('i18next-http-middleware')
-const path = require('path')
 const { URL } = require('url')
 
 module.exports = {
@@ -47,55 +44,16 @@ module.exports = {
         return translated.replace(`__${keyValue[0]}__`, keyValue[1])
       }, bareLocale)
     }
-    function overrideTranslate(mw) {
-      return function(req, res, next) {
-        mw(req, res, function() {
-          req.i18n.t = translate.bind(null, allLocales.get(req.language))
-          next()
-        })
-      }
-    }
 
-    i18n
-      .use(middleware.LanguageDetector)
-      .use(require('i18next-fs-backend'))
-      .init({
-        initImmediate: false, // load synchronous
-        backend: {
-          loadPath: path.resolve(__dirname, 'locales/__lng__.json'),
-          addPath: path.resolve(__dirname, 'locales/missing-__lng__.json')
-        },
-        saveMissing: true,
-        saveMissingTo: 'fallback',
-        interpolation: {
-          escapeValue: false, // some vars use HTML -- e.g. `<strong>`
-          prefix: '__',
-          suffix: '__'
-        },
-        fallbackLng: fallbackLng,
-        preload: availableLngs,
-        supportedLngs: availableLngs
-      })
-    const setLangBasedOnDomainMiddlewear = function(req, res, next) {
+    const setLangBasedOnDomainMiddleware = function(req, res, next) {
       res.locals.getTranslationUrl = spec => {
         return new URL(req.originalUrl, spec.url).href
       }
 
-      if (req.query.setLng) {
-        // Developers/Users can override the language per request
-        req.i18n.changeLanguage(req.query.setLng)
-        return next()
-      }
       const { host } = req.headers
-      const browserLanguage = req.language
       // prefer host and then fallback language over browser hint
-      const targetLanguage =
+      req.language =
         (availableHosts.has(host) && availableHosts.get(host)) || fallbackLng
-      if (browserLanguage !== targetLanguage) {
-        // accept-language header and host header mismatch
-        req.i18n.changeLanguage(targetLanguage)
-        req.showUserOtherLng = browserLanguage
-      }
       next()
     }
     function setLangBasedOnSessionOrQueryParam(req, res, next) {
@@ -113,15 +71,8 @@ module.exports = {
         return res.redirect(parsedURL.pathname + parsedURL.search)
       }
 
-      const browserLanguage = req.language
       // prefer session and then fallback language over browser hint
-      const targetLanguage = (req.session.lng && req.session.lng) || fallbackLng
-      if (browserLanguage !== targetLanguage) {
-        // 'accept-language' header and setGlobalLng mismatch
-        // 'accept-language' header and fallbackLng mismatch
-        req.i18n.changeLanguage(targetLanguage)
-        req.showUserOtherLng = browserLanguage
-      }
+      req.language = (req.session.lng && req.session.lng) || fallbackLng
       next()
     }
 
@@ -129,15 +80,42 @@ module.exports = {
       typeof options.singleDomainMultipleLng === 'boolean'
         ? options.singleDomainMultipleLng
         : availableHosts.size === 1 && availableLngs.length !== 1
+    const _setLang = singleDomainMultipleLng
+      ? setLangBasedOnSessionOrQueryParam
+      : setLangBasedOnDomainMiddleware
 
-    return {
-      expressMiddlewear: middleware.handle(i18n),
-      setLangBasedOnDomainMiddlewear: overrideTranslate(
-        singleDomainMultipleLng
-          ? setLangBasedOnSessionOrQueryParam
-          : setLangBasedOnDomainMiddlewear
-      ),
-      i18n
+    function setLang(req, res, next) {
+      if (req.query.setLng) {
+        // Developers/Users can override the language per request
+        req.language = req.query.setLng
+        return next()
+      }
+      _setLang(req, res, next)
     }
+
+    function middleware(req, res, next) {
+      setLang(req, res, function() {
+        const browserLanguage = req.acceptsLanguages(availableLngs)
+        if (browserLanguage && browserLanguage !== req.language) {
+          // 'accept-language' header and fallbackLng mismatch
+          // 'accept-language' header and host header mismatch
+          // 'accept-language' header and ?setGlobalLng mismatch
+          // 'accept-language' header and ?setLng mismatch
+          req.showUserOtherLng = browserLanguage
+        }
+        req.lng = req.locale = req.language
+
+        req.i18n = {}
+        req.i18n.t = req.i18n.translate = translate.bind(
+          null,
+          allLocales.get(req.language)
+        )
+        next()
+      })
+    }
+
+    middleware.expressMiddlewear = middleware
+    middleware.setLangBasedOnDomainMiddlewear = (req, res, next) => next()
+    return middleware
   }
 }

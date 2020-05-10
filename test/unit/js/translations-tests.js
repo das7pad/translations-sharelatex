@@ -4,6 +4,7 @@ const path = require('path')
 const modulePath = path.join(__dirname, '../../../index.js')
 const { expect } = require('chai')
 const sinon = require('sinon')
+const accepts = require('accepts')
 
 describe('translations', function() {
   const subdomainLang = Object.fromEntries(
@@ -32,6 +33,10 @@ describe('translations', function() {
     }
     this.translations = this.translationsModule.setup(opts)
     this.req = {
+      acceptsLanguages: function() {
+        const accept = accepts(this)
+        return accept.languages.apply(accept, arguments)
+      },
       headers: {
         'accept-language': ''
       },
@@ -326,15 +331,9 @@ describe('translations', function() {
 
       function checkLang(lng) {
         describe(`setGlobalLng=${lng}`, function() {
-          beforeEach(function(done) {
+          beforeEach(function() {
             this.req.query.setGlobalLng = lng
-            this.translations.expressMiddlewear(this.req, this.res, () => {
-              this.translations.setLangBasedOnDomainMiddlewear(
-                this.req,
-                this.res
-              )
-              done()
-            })
+            this.translations(this.req, this.res, () => {})
           })
           it('should send the user back', function() {
             this.res.redirect.calledWith('/login').should.equal(true)
@@ -348,13 +347,10 @@ describe('translations', function() {
       checkLang('fr')
 
       describe('with additional query params', function() {
-        beforeEach(function(done) {
+        beforeEach(function() {
           this.req.originalUrl = '/login?setGlobalLng=da&someKey=someValue'
           this.req.query.setGlobalLng = 'da'
-          this.translations.expressMiddlewear(this.req, this.res, () => {
-            this.translations.setLangBasedOnDomainMiddlewear(this.req, this.res)
-            done()
-          })
+          this.translations(this.req, this.res, () => {})
         })
         it('should send the user back and preserve the query param', function() {
           this.res.redirect
