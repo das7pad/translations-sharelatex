@@ -19,23 +19,23 @@ module.exports = {
     i18n
       .use(middleware.LanguageDetector)
       .use(require('i18next-fs-backend'))
-    .init({
-      initImmediate: false, // load synchronous
-      backend: {
-        loadPath: path.resolve(__dirname, 'locales/__lng__.json'),
-        addPath: path.resolve(__dirname, 'locales/missing-__lng__.json'),
-      },
-      saveMissing: true,
-      saveMissingTo: 'fallback',
-      interpolation: {
-        escapeValue: false, // some vars use HTML -- e.g. `<strong>`
-        prefix: '__',
-        suffix: '__',
-      },
-      fallbackLng: fallbackLng,
-      preload: availableLngs,
-      supportedLngs: availableLngs
-    })
+      .init({
+        initImmediate: false, // load synchronous
+        backend: {
+          loadPath: path.resolve(__dirname, 'locales/__lng__.json'),
+          addPath: path.resolve(__dirname, 'locales/missing-__lng__.json')
+        },
+        saveMissing: true,
+        saveMissingTo: 'fallback',
+        interpolation: {
+          escapeValue: false, // some vars use HTML -- e.g. `<strong>`
+          prefix: '__',
+          suffix: '__'
+        },
+        fallbackLng: fallbackLng,
+        preload: availableLngs,
+        supportedLngs: availableLngs
+      })
     const setLangBasedOnDomainMiddlewear = function(req, res, next) {
       res.locals.getTranslationUrl = spec => {
         return new URL(req.originalUrl, spec.url).href
@@ -48,11 +48,12 @@ module.exports = {
       }
       const { host } = req.headers
       const browserLanguage = req.language
-      if (availableHosts.has(host)) {
-        req.i18n.changeLanguage(availableHosts.get(host))
-      }
-      if (browserLanguage !== req.language) {
+      // prefer host and then fallback language over browser hint
+      const targetLanguage =
+        (availableHosts.has(host) && availableHosts.get(host)) || fallbackLng
+      if (browserLanguage !== targetLanguage) {
         // accept-language header and host header mismatch
+        req.i18n.changeLanguage(targetLanguage)
         req.showUserOtherLng = browserLanguage
       }
       next()
@@ -73,15 +74,12 @@ module.exports = {
       }
 
       const browserLanguage = req.language
-      if (req.session.lng) {
-        req.i18n.changeLanguage(req.session.lng)
-      } else {
-        // prefer fallback language over browser hint
-        req.i18n.changeLanguage(fallbackLng)
-      }
-      if (browserLanguage !== req.language) {
+      // prefer session and then fallback language over browser hint
+      const targetLanguage = (req.session.lng && req.session.lng) || fallbackLng
+      if (browserLanguage !== targetLanguage) {
         // 'accept-language' header and setGlobalLng mismatch
         // 'accept-language' header and fallbackLng mismatch
+        req.i18n.changeLanguage(targetLanguage)
         req.showUserOtherLng = browserLanguage
       }
       next()
