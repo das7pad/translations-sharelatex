@@ -34,11 +34,14 @@ module.exports = {
       locales.set(key, fallback)
       return fallback
     }
+    const regexCache = new Map()
     function substitute(locale, keyValuePair) {
-      return locale.replace(
-        new RegExp(`__${keyValuePair[0]}__`, 'g'),
-        keyValuePair[1]
-      )
+      const regex =
+        regexCache.get(keyValuePair[0]) ||
+        regexCache
+          .set(keyValuePair[0], new RegExp(`__${keyValuePair[0]}__`, 'g'))
+          .get(keyValuePair[0])
+      return locale.replace(regex, keyValuePair[1])
     }
     function translate(locales, key, vars) {
       return Object.entries(vars || {}).reduce(

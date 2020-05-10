@@ -80,16 +80,20 @@ describe('translations', function() {
     }
 
     beforeEach(function() {
+      const regexCache = new Map()
+      function substitute(locale, keyValuePair) {
+        const regex =
+          regexCache.get(keyValuePair[0]) ||
+          regexCache
+            .set(keyValuePair[0], new RegExp(`__${keyValuePair[0]}__`, 'g'))
+            .get(keyValuePair[0])
+        return locale.replace(regex, keyValuePair[1])
+      }
       this.mockedTranslate = (lang, key, vars) => {
         const bareLocale = getLocaleWithFallback(lang, key)
         vars = vars || {}
         vars.appName = this.appName
-        return Object.entries(vars).reduce((translated, keyValue) => {
-          return translated.replace(
-            new RegExp(`__${keyValue[0]}__`, 'g'),
-            keyValue[1]
-          )
-        }, bareLocale)
+        return Object.entries(vars).reduce(substitute, bareLocale)
       }
     })
     ;[
