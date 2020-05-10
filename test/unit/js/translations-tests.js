@@ -34,6 +34,7 @@ describe('translations', function() {
       })
       .concat([['www', { lngCode: 'en', url: 'https://www.sharelatex.com' }]])
   )
+  const allLocaleKeys = Object.keys(require('../../../locales/en.json')).sort()
 
   beforeEach(function() {
     this.translationsModule = SandboxedModule.require(modulePath, {
@@ -92,17 +93,17 @@ describe('translations', function() {
     function getLocaleWithFallback(lang, key) {
       return getLocale(lang, key) || getLocale('en', key) || ''
     }
+    const regexCache = new Map()
+    function substitute(locale, keyValuePair) {
+      const regex =
+        regexCache.get(keyValuePair[0]) ||
+        regexCache
+          .set(keyValuePair[0], new RegExp(`__${keyValuePair[0]}__`, 'g'))
+          .get(keyValuePair[0])
+      return locale.replace(regex, keyValuePair[1])
+    }
 
     beforeEach(function() {
-      const regexCache = new Map()
-      function substitute(locale, keyValuePair) {
-        const regex =
-          regexCache.get(keyValuePair[0]) ||
-          regexCache
-            .set(keyValuePair[0], new RegExp(`__${keyValuePair[0]}__`, 'g'))
-            .get(keyValuePair[0])
-        return locale.replace(regex, keyValuePair[1])
-      }
       this.mockedTranslate = (lang, key, vars) => {
         const bareLocale = getLocaleWithFallback(lang, key)
         vars = vars || {}
@@ -172,28 +173,48 @@ describe('translations', function() {
       })
     })
     describe('perf', function() {
+      function bench(numOfMiddlewareInvocations, keys) {
+        Object.values(subdomainLang).forEach(langSpec => {
+          it(`should translate for lang=${langSpec.lngCode}`, function(done) {
+            this.timeout(60 * 1000)
+            let doneCounter = numOfMiddlewareInvocations
+            function eventuallyCallDone() {
+              if (!--doneCounter) done()
+            }
+            this.req.headers.host = new URL(subdomainLang.www.url).host
+            this.req.query.setLng = langSpec.lngCode
+            let i = doneCounter
+            while (i--) {
+              this.translations(this.req, this.res, () => {
+                for (const key of keys) {
+                  const actual = this.res.locals.translate(key)
+                  const expected = this.mockedTranslate(langSpec.lngCode, key)
+                  actual.should.equal(expected, key)
+                }
+                eventuallyCallDone()
+              })
+            }
+          })
+        })
+      }
+      
       describe('translate all keys (~40k items)', function() {
-        let allKeys = Object.keys(require('../../../locales/en.json'))
+        let allKeys = allLocaleKeys.slice()
         Array.from({ length: 5 }).forEach(() => {
           allKeys = allKeys.concat(allKeys)
         })
-        Object.values(subdomainLang).forEach(langSpec => {
-          it(`should translate for lang=${langSpec.lngCode}`, function(done) {
-            this.req.headers.host = new URL(subdomainLang.www.url).host
-            this.req.query.setLng = langSpec.lngCode
-            this.translations(this.req, this.res, () => {
-              for (const key of allKeys) {
-                const actual = [key, this.res.locals.translate(key)]
-                const expected = [
-                  key,
-                  this.mockedTranslate(langSpec.lngCode, key)
-                ]
-                actual.should.deep.equal(expected)
-              }
-              done()
-            })
-          })
-        })
+        bench(1, allKeys)
+      })
+      describe('invoke middleware (100k times and translate no keys)', function() {
+        bench(100 * 1000, [])
+      })
+      describe('invoke middleware (2k times and translate 20 keys)', function() {
+        const keys = allLocaleKeys.slice(500, 520)
+        bench(2 * 1000, keys)
+      })
+      describe('invoke middleware (2k times and translate 40 keys)', function() {
+        const keys = allLocaleKeys.slice(600, 640)
+        bench(2 * 1000, keys)
       })
     })
   })
