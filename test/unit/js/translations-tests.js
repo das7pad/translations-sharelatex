@@ -91,7 +91,7 @@ describe('translations', function() {
       return require(`../../../locales/${lang}.json`)[key]
     }
     function getLocaleWithFallback(lang, key) {
-      return getLocale(lang, key) || getLocale('en', key) || ''
+      return getLocale(lang, key) || getLocale('en', key) || key
     }
     const regexCache = new Map()
     function substitute(locale, keyValuePair) {
