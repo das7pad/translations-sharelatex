@@ -51,7 +51,7 @@ module.exports = {
 
       // prefer host and then fallback language over browser hint
       req.language = availableHosts.get(req.headers.host) || fallbackLng
-      next()
+      postprocess(req, res, next)
     }
     function setLangBasedOnSessionOrQueryParam(req, res, next) {
       res.locals.getTranslationUrl = spec => {
@@ -72,44 +72,42 @@ module.exports = {
 
       // prefer session and then fallback language over browser hint
       req.language = req.session.lng || fallbackLng
-      next()
+      postprocess(req, res, next)
     }
 
     const singleDomainMultipleLng =
       typeof options.singleDomainMultipleLng === 'boolean'
         ? options.singleDomainMultipleLng
         : availableHosts.size === 1 && availableLngCodes.length !== 1
-    const setLang = singleDomainMultipleLng
+    const middleware = singleDomainMultipleLng
       ? setLangBasedOnSessionOrQueryParam
       : setLangBasedOnDomainMiddleware
 
-    function middleware(req, res, next) {
-      setLang(req, res, function() {
-        if (req.query.setLng) {
-          // Developers/Users can override the language per request
-          if (!availableLngCodes.includes(req.query.setLng)) {
-            return res.status(400).json({ message: 'invalid lngCode' })
-          }
-          req.language = req.query.setLng
+    function postprocess(req, res, next) {
+      if (req.query.setLng) {
+        // Developers/Users can override the language per request
+        if (!availableLngCodes.includes(req.query.setLng)) {
+          return res.status(400).json({ message: 'invalid lngCode' })
         }
+        req.language = req.query.setLng
+      }
 
-        const browserLanguage = req.acceptsLanguages(availableLngCodes)
-        if (browserLanguage && browserLanguage !== req.language) {
-          // 'accept-language' header and fallbackLng mismatch
-          // 'accept-language' header and host header mismatch
-          // 'accept-language' header and ?setGlobalLng mismatch
-          // 'accept-language' header and ?setLng mismatch
-          req.showUserOtherLng = browserLanguage
-        }
+      const browserLanguage = req.acceptsLanguages(availableLngCodes)
+      if (browserLanguage && browserLanguage !== req.language) {
+        // 'accept-language' header and fallbackLng mismatch
+        // 'accept-language' header and host header mismatch
+        // 'accept-language' header and ?setGlobalLng mismatch
+        // 'accept-language' header and ?setLng mismatch
+        req.showUserOtherLng = browserLanguage
+      }
 
-        req.lng = req.locale = req.language
-        req.i18n = {}
-        req.i18n.t = req.i18n.translate = translate.bind(
-          null,
-          allLocales.get(req.language)
-        )
-        next()
-      })
+      req.lng = req.locale = req.language
+      req.i18n = {}
+      req.i18n.t = req.i18n.translate = translate.bind(
+        null,
+        allLocales.get(req.language)
+      )
+      next()
     }
 
     // backwards compatibility
