@@ -27,12 +27,13 @@ module.exports = {
     function getLocaleFromFallback(key) {
       return fallbackLocales.has(key) ? fallbackLocales.get(key) : key
     }
-    function getLocale(locales, key) {
-      if (locales.has(key)) return locales.get(key)
-
+    function getAndCacheLocaleFromFallback(locales, key) {
       const fallback = getLocaleFromFallback(key)
       locales.set(key, fallback)
       return fallback
+    }
+    function getLocale(locales, key) {
+      return locales.get(key) || getAndCacheLocaleFromFallback(locales, key)
     }
     const regexCache = new Map()
     function createAndCacheFieldRegex(field) {
