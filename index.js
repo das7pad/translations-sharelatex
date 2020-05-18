@@ -119,6 +119,10 @@ module.exports = {
     // backwards compatibility
     middleware.expressMiddlewear = middleware
     middleware.setLangBasedOnDomainMiddlewear = (req, res, next) => next()
+    // used in tests
+    middleware.i18n = {
+      translate: key => translate(allLocales.get(fallbackLng), key)
+    }
     return middleware
   }
 }
