@@ -197,7 +197,7 @@ describe('translations', function() {
           })
         })
       }
-      
+
       describe('translate all keys (~40k items)', function() {
         let allKeys = allLocaleKeys.slice()
         Array.from({ length: 5 }).forEach(() => {
