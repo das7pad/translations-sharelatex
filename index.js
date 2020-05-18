@@ -110,10 +110,9 @@ module.exports = {
 
       req.lng = req.locale = req.language
       req.i18n = {}
-      req.i18n.t = req.i18n.translate = translate.bind(
-        null,
-        allLocales.get(req.language)
-      )
+      const locales = allLocales.get(req.language)
+      req.i18n.t = req.i18n.translate = (key, vars) =>
+        translate(locales, key, vars)
       next()
     }
 
