@@ -24,11 +24,8 @@ module.exports = {
       ])
     )
     const fallbackLocales = allLocales.get(fallbackLng)
-    function getLocaleFromFallback(key) {
-      return fallbackLocales.has(key) ? fallbackLocales.get(key) : key
-    }
     function getAndCacheLocaleFromFallback(locales, key) {
-      const fallback = getLocaleFromFallback(key)
+      const fallback = fallbackLocales.get(key) || key
       locales.set(key, fallback)
       return fallback
     }
