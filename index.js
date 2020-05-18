@@ -35,13 +35,16 @@ module.exports = {
       return fallback
     }
     const regexCache = new Map()
+    function createAndCacheFieldRegex(field) {
+      const regex = new RegExp(`__${field}__`, 'g')
+      regexCache.set(field, regex)
+      return regex
+    }
+    function getKeyMatcher(field) {
+      return regexCache.get(field) || createAndCacheFieldRegex(field)
+    }
     function substitute(locale, keyValuePair) {
-      const regex =
-        regexCache.get(keyValuePair[0]) ||
-        regexCache
-          .set(keyValuePair[0], new RegExp(`__${keyValuePair[0]}__`, 'g'))
-          .get(keyValuePair[0])
-      return locale.replace(regex, keyValuePair[1])
+      return locale.replace(getKeyMatcher(keyValuePair[0]), keyValuePair[1])
     }
     function translate(locales, key, vars) {
       return Object.entries(vars || {}).reduce(
