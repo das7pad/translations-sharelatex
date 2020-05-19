@@ -77,6 +77,20 @@ describe('translations', function() {
     }
   })
 
+  describe('without any provided options', function() {
+    beforeEach(function() {
+      this.translations = this.translationsModule.setup()
+    })
+
+    it('should be able to translate', function() {
+      expect(
+        this.translations.i18n.translate(
+          'not_found_error_from_the_supplied_url'
+        )
+      ).to.exist.and.to.not.equal('not_found_error_from_the_supplied_url')
+    })
+  })
+
   describe('i18n.translate', function() {
     function cloneVars(vars) {
       // i18n adds the used language as `.lng` into the vars when there is no

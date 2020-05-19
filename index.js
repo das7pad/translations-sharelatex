@@ -13,6 +13,9 @@ module.exports = {
     })
 
     const fallbackLng = options.defaultLng || 'en'
+    if (!availableLngCodes.includes(fallbackLng)) {
+      availableLngCodes.push(fallbackLng)
+    }
     const allLocales = new Map(
       availableLngCodes.map(lang => [
         lang,
