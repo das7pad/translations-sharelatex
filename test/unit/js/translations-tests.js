@@ -198,15 +198,34 @@ describe('translations', function() {
             this.req.headers.host = new URL(subdomainLang.www.url).host
             this.req.query.setLng = langSpec.lngCode
             let i = doneCounter
-            while (i--) {
+            if (i === 1) {
+              while (i--) {
+                this.translations(this.req, this.res, () => {
+                  for (const key of keys) {
+                    const actual = this.res.locals.translate(key)
+                    const expected = this.mockedTranslate(langSpec.lngCode, key)
+                    actual.should.equal(expected, key)
+                  }
+                  eventuallyCallDone()
+                })
+              }
+            } else {
+              // validate once
               this.translations(this.req, this.res, () => {
                 for (const key of keys) {
                   const actual = this.res.locals.translate(key)
                   const expected = this.mockedTranslate(langSpec.lngCode, key)
                   actual.should.equal(expected, key)
                 }
-                eventuallyCallDone()
               })
+              while (i--) {
+                this.translations(this.req, this.res, () => {
+                  for (const key of keys) {
+                    this.res.locals.translate(key)
+                  }
+                  eventuallyCallDone()
+                })
+              }
             }
           })
         })
@@ -222,13 +241,37 @@ describe('translations', function() {
       describe('invoke middleware (100k times and translate no keys)', function() {
         bench(100 * 1000, [])
       })
+      describe('invoke middleware (2k times and translate 10 keys)', function() {
+        const keys = allLocaleKeys.slice(490, 500)
+        bench(2 * 1000, keys)
+      })
       describe('invoke middleware (2k times and translate 20 keys)', function() {
         const keys = allLocaleKeys.slice(500, 520)
+        bench(2 * 1000, keys)
+      })
+      describe('invoke middleware (2k times and translate 30 keys)', function() {
+        const keys = allLocaleKeys.slice(520, 550)
         bench(2 * 1000, keys)
       })
       describe('invoke middleware (2k times and translate 40 keys)', function() {
         const keys = allLocaleKeys.slice(600, 640)
         bench(2 * 1000, keys)
+      })
+      describe('invoke middleware (2k times and translate 50 keys)', function() {
+        const keys = allLocaleKeys.slice(640, 700)
+        bench(2 * 1000, keys)
+      })
+      describe('invoke middleware (2k times and translate 100 keys)', function() {
+        const keys = allLocaleKeys.slice(700, 800)
+        bench(2 * 1000, keys)
+      })
+      describe('invoke middleware (10k times and translate 20 keys)', function() {
+        const keys = allLocaleKeys.slice(800, 820)
+        bench(10 * 1000, keys)
+      })
+      describe('invoke middleware (10k times and translate 40 keys)', function() {
+        const keys = allLocaleKeys.slice(820, 860)
+        bench(10 * 1000, keys)
       })
     })
   })
