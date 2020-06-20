@@ -124,7 +124,7 @@ module.exports = {
     middleware.setLangBasedOnDomainMiddlewear = (req, res, next) => next()
     // used in tests
     middleware.i18n = {
-      translate: key => translate(allLocales.get(fallbackLng), key)
+      translate: key => translate(fallbackLocales, key)
     }
     return middleware
   }
