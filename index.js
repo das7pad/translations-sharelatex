@@ -1,6 +1,23 @@
 const fs = require('fs')
 const { URL } = require('url')
 
+function buildAllLocales(fallbackLng, availableLngCodes) {
+  function loadLocalesFromDisk(lang) {
+    return JSON.parse(fs.readFileSync(`${__dirname}/locales/${lang}.json`))
+  }
+  const rawFallbackLocales = loadLocalesFromDisk(fallbackLng)
+  return new Map(
+    availableLngCodes.map(lang => [
+      lang,
+      new Map(
+        Object.entries(
+          Object.assign({}, rawFallbackLocales, loadLocalesFromDisk(lang))
+        )
+      )
+    ])
+  )
+}
+
 module.exports = {
   setup(options) {
     options = options || {}
@@ -16,25 +33,8 @@ module.exports = {
     if (!availableLngCodes.includes(fallbackLng)) {
       availableLngCodes.push(fallbackLng)
     }
-    const allLocales = new Map(
-      availableLngCodes.map(lang => [
-        lang,
-        new Map(
-          Object.entries(
-            JSON.parse(fs.readFileSync(`${__dirname}/locales/${lang}.json`))
-          )
-        )
-      ])
-    )
-    const fallbackLocales = allLocales.get(fallbackLng)
-    function getAndCacheLocaleFromFallback(locales, key) {
-      const fallback = fallbackLocales.get(key) || key
-      locales.set(key, fallback)
-      return fallback
-    }
-    function getLocale(locales, key) {
-      return locales.get(key) || getAndCacheLocaleFromFallback(locales, key)
-    }
+    const allLocales = buildAllLocales(fallbackLng, availableLngCodes)
+
     const regexCache = new Map()
     function createAndCacheFieldRegex(field) {
       const regex = new RegExp(`__${field}__`, 'g')
@@ -50,7 +50,7 @@ module.exports = {
     function translate(locales, key, vars) {
       return Object.entries(vars || {}).reduce(
         substitute,
-        getLocale(locales, key)
+        locales.get(key) || key
       )
     }
 
@@ -123,6 +123,7 @@ module.exports = {
     middleware.expressMiddlewear = middleware
     middleware.setLangBasedOnDomainMiddlewear = (req, res, next) => next()
     // used in tests
+    const fallbackLocales = allLocales.get(fallbackLng)
     middleware.i18n = {
       translate: key => translate(fallbackLocales, key)
     }
