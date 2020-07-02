@@ -2,20 +2,19 @@ const fs = require('fs')
 const { URL } = require('url')
 
 function buildAllLocales(fallbackLng, availableLngCodes) {
-  function loadLocalesFromDisk(lang) {
-    return JSON.parse(fs.readFileSync(`${__dirname}/locales/${lang}.json`))
+  function load(lng) {
+    // -> `[['key1', 'Foo __bar__'], ['key2', 'Bar']]`
+    return Object.entries(
+      JSON.parse(fs.readFileSync(`${__dirname}/locales/${lng}.json`))
+    )
   }
-  const rawFallbackLocales = loadLocalesFromDisk(fallbackLng)
-  return new Map(
-    availableLngCodes.map(lang => [
-      lang,
-      new Map(
-        Object.entries(
-          Object.assign({}, rawFallbackLocales, loadLocalesFromDisk(lang))
-        )
-      )
-    ])
-  )
+  function chain(targetLocales) {
+    // new Map([['key1','English'], ['key2','foo'], ['key1','German']])
+    // last key wins -> `Map { 'key1' => 'German', 'key2' => 'foo' }`
+    return new Map(fallbackLocales.concat(targetLocales))
+  }
+  const fallbackLocales = load(fallbackLng)
+  return new Map(availableLngCodes.map(lng => [lng, chain(load(lng))]))
 }
 
 module.exports = {
