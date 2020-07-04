@@ -41,6 +41,8 @@ module.exports = {
       vars = vars || {}
       return (locales.get(key) || key).replace(
         KEYS,
+        // fallback to no replacement
+        // ('__appName__', 'appName') => vars['appName'] || '__appName__'
         (field, label) => vars[label] || field
       )
     }
