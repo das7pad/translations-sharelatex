@@ -99,7 +99,7 @@ describe('translations', function() {
       //  `.lng` as language:
       // vars={}; translate('ENOENT', vars); vars.lng === 'someLang'
       if (typeof vars !== 'object') return vars
-      return JSON.parse(JSON.stringify(vars))
+      return Object.assign({}, vars)
     }
     function getLocale(lang, key) {
       return require(`../../../locales/${lang}.json`)[key]
