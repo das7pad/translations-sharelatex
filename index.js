@@ -1,6 +1,7 @@
 const fs = require('fs')
 const { URL } = require('url')
 
+// IO is very expensive -- load locales up-front
 function buildAllLocales(fallbackLng, availableLngCodes) {
   function load(lng) {
     // -> `[['key1', 'Foo __bar__'], ['key2', 'Bar']]`
@@ -15,6 +16,20 @@ function buildAllLocales(fallbackLng, availableLngCodes) {
   }
   const fallbackLocales = load(fallbackLng)
   return new Map(availableLngCodes.map(lng => [lng, chain(load(lng))]))
+}
+// creating lots of RegExp objects is fairly expensive -- precompile up-front
+function buildKeyMatcher(locales) {
+  const keyMatcher = new Map()
+  const KEYS = new RegExp('__(.+?)__', 'g')
+  for (const locale of locales.values()) {
+    for (const match of locale.matchAll(KEYS)) {
+      const [field, key] = match
+      if (!keyMatcher.has(key)) {
+        keyMatcher.set(key, new RegExp(field, 'g'))
+      }
+    }
+  }
+  return keyMatcher
 }
 
 module.exports = {
@@ -33,18 +48,23 @@ module.exports = {
       availableLngCodes.push(fallbackLng)
     }
     const allLocales = buildAllLocales(fallbackLng, availableLngCodes)
+    const fallbackLocales = allLocales.get(fallbackLng)
+    const keyMatcher = buildKeyMatcher(fallbackLocales)
 
-    const regexCache = new Map()
-    function createAndCacheFieldRegex(field) {
-      const regex = new RegExp(`__${field}__`, 'g')
-      regexCache.set(field, regex)
-      return regex
-    }
-    function getKeyMatcher(field) {
-      return regexCache.get(field) || createAndCacheFieldRegex(field)
-    }
     function substitute(locale, keyValuePair) {
-      return locale.replace(getKeyMatcher(keyValuePair[0]), keyValuePair[1])
+      // - match with a valid key
+      // substitute('My __appName__', ['appName', 'Overleaf'])
+      // -> 'My __appName__'.replace(new RegExp('__appName__','g'), 'Overleaf')
+      // -> 'My Overleaf'
+      // - no match with a valid key
+      // substitute('My __appName__', ['foo', 'bar'])
+      // -> 'My __appName__'.replace(new RegExp('__foo__','g'), 'bar')
+      // -> 'My __appName__'
+      // - no match with an invalid key (s.replace() is no-op with undefined)
+      // substitute('My __appName__', ['unknownKey', 'bar'])
+      // -> 'My __appName__'.replace(undefined, 'bar')
+      // -> 'My __appName__'
+      return locale.replace(keyMatcher.get(keyValuePair[0]), keyValuePair[1])
     }
     function translate(locales, key, vars) {
       return Object.entries(vars || {}).reduce(
@@ -121,8 +141,6 @@ module.exports = {
     // backwards compatibility
     middleware.expressMiddlewear = middleware
     middleware.setLangBasedOnDomainMiddlewear = (req, res, next) => next()
-    // used in tests
-    const fallbackLocales = allLocales.get(fallbackLng)
     middleware.i18n = {
       translate: key => translate(fallbackLocales, key)
     }
