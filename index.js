@@ -67,6 +67,12 @@ module.exports = {
       return locale.replace(keyMatcher.get(keyValuePair[0]), keyValuePair[1])
     }
     function translate(locales, key, vars) {
+      // t(Map{'my_app'=>'My ...'}, 'my_app', {foo:'bar', appName:'Overleaf'})
+      // -> [['foo', 'bar'], ['appName', 'Overleaf']].reduce(substitute, ...)
+      // -> [...].reduce(substitute, 'My __appName__')
+      // -> substitute('My __appName__', ['foo', 'bar'])            // no match
+      // -> substitute('My __appName__', ['appName', 'Overleaf'])   // match
+      // -> 'My Overleaf'
       return Object.entries(vars || {}).reduce(
         substitute,
         locales.get(key) || key
