@@ -107,22 +107,16 @@ describe('translations', function() {
     function getLocaleWithFallback(lang, key) {
       return getLocale(lang, key) || getLocale('en', key) || key
     }
-    const regexCache = new Map()
-    function substitute(locale, keyValuePair) {
-      const regex =
-        regexCache.get(keyValuePair[0]) ||
-        regexCache
-          .set(keyValuePair[0], new RegExp(`__${keyValuePair[0]}__`, 'g'))
-          .get(keyValuePair[0])
-      return locale.replace(regex, keyValuePair[1])
-    }
+    const KEYS = new RegExp('__(.+?)__', 'g')
 
     beforeEach(function() {
       this.mockedTranslate = (lang, key, vars) => {
-        const bareLocale = getLocaleWithFallback(lang, key)
         vars = vars || {}
         vars.appName = this.appName
-        return Object.entries(vars).reduce(substitute, bareLocale)
+        return getLocaleWithFallback(lang, key).replace(
+          KEYS,
+          (field, label) => vars[label] || field
+        )
       }
     })
     ;[
