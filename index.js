@@ -1,21 +1,7 @@
-const fs = require('fs')
 const { URL } = require('url')
 
-// IO is very expensive -- load locales up-front
-function buildAllLocales(fallbackLng, availableLngCodes) {
-  function load(lng) {
-    // -> `[['key1', 'Foo __bar__'], ['key2', 'Bar']]`
-    return Object.entries(
-      JSON.parse(fs.readFileSync(`${__dirname}/locales/${lng}.json`))
-    )
-  }
-  function chain(targetLocales) {
-    // new Map([['key1','English'], ['key2','foo'], ['key1','German']])
-    // last key wins -> `Map { 'key1' => 'German', 'key2' => 'foo' }`
-    return new Map(fallbackLocales.concat(targetLocales))
-  }
-  const fallbackLocales = load(fallbackLng)
-  return new Map(availableLngCodes.map(lng => [lng, chain(load(lng))]))
+function loadAll(availableLngCodes = []) {
+  return new Map(availableLngCodes.map(lng => [lng, require(`./lng/${lng}`)]))
 }
 
 module.exports = {
@@ -33,19 +19,7 @@ module.exports = {
     if (!availableLngCodes.includes(fallbackLng)) {
       availableLngCodes.push(fallbackLng)
     }
-    const allLocales = buildAllLocales(fallbackLng, availableLngCodes)
-    const fallbackLocales = allLocales.get(fallbackLng)
-    const KEYS = new RegExp('__(.+?)__', 'g')
-
-    function translate(locales, key, vars) {
-      vars = vars || {}
-      return (locales.get(key) || key).replace(
-        KEYS,
-        // fallback to no replacement
-        // ('__appName__', 'appName') => vars['appName'] || '__appName__'
-        (field, label) => vars[label] || field
-      )
-    }
+    const allLocales = loadAll(availableLngCodes)
 
     function setLangBasedOnDomainMiddleware(req, res, next) {
       res.locals.getTranslationUrl = spec => {
@@ -106,18 +80,14 @@ module.exports = {
 
       req.lng = req.locale = req.language
       req.i18n = {}
-      const locales = allLocales.get(req.language)
-      req.i18n.t = req.i18n.translate = (key, vars) =>
-        translate(locales, key, vars)
+      req.i18n.t = req.i18n.translate = allLocales.get(req.language)
       next()
     }
 
     // backwards compatibility
     middleware.expressMiddlewear = middleware
     middleware.setLangBasedOnDomainMiddlewear = (req, res, next) => next()
-    middleware.i18n = {
-      translate: key => translate(fallbackLocales, key)
-    }
+    middleware.i18n = { translate: allLocales.get('en') }
     return middleware
   }
 }

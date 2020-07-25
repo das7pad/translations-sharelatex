@@ -7,9 +7,10 @@
     "url": "https://github.com/sharelatex/translations-sharelatex.git"
   },
   "scripts": {
+    "install": "node build/",
     "lint": "node_modules/.bin/eslint .",
-    "format": "node_modules/.bin/prettier-eslint $PWD'/**/*.js' --list-different",
-    "format:fix": "node_modules/.bin/prettier-eslint $PWD'/**/*.js' --write",
+    "format": "node_modules/.bin/prettier-eslint $PWD'/**/*.js' --list-different && node_modules/.bin/prettier --list-different $PWD/demo.html",
+    "format:fix": "node_modules/.bin/prettier-eslint $PWD'/**/*.js' --write && node_modules/.bin/prettier --write $PWD/demo.html",
     "test": "mocha $@ test/unit/js"
   },
   "devDependencies": {

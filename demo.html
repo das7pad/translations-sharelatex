@@ -1,0 +1,155 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Demo</title>
+    <script type="application/javascript" src="./lng/en.js"></script>
+    <style type="text/css">
+      * {
+        font-family: monospace;
+      }
+      #locales {
+        width: 100%;
+        height: 10%;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      thead {
+        border-bottom: 2px solid black;
+      }
+      td {
+        border: 1px solid black;
+      }
+      .btn {
+        padding: 5px;
+      }
+      .btn-info {
+        color: black;
+        background-color: lightblue;
+      }
+      .pull-right {
+        float: right;
+      }
+      code {
+        background: lightgray;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="switch" method="get">
+      <label for="lng">Select language</label>
+      <input id="lng" type="text" placeholder="en" />
+      <button type="submit">Switch</button>
+    </form>
+    <form id="run" method="get">
+      <label for="locales">Locales with context</label>
+      <textarea id="locales" name="locales" placeholder="">
+login,{}
+github_sync_description,{"appName": "Overleaf"}
+invited_to_group,{"inviterName": "Alice", "appName": "Overleaf"}
+delete_account_warning_message,{}
+notification_project_invite,{"userName": "Bob", "projectName": "Maths 42", "projectId": "000000000000000000000000", "token": "a1b2c3d4"}
+</textarea
+      >
+      <button type="submit">Run</button>
+    </form>
+    <p>
+      Use the URL query parameter <code>languages</code> for automated runs on
+      multiple languages. For example
+      <code>demo.html?languages=cn,de,en,fr,pt</code>
+    </p>
+    <p>
+      Use the URL hash parameter <code>locales</code> for bootstrapping the
+      locales. This parameter expects an urlencoded value. For example
+      <code>demo.html#locales=log_out%2C%7B%7D</code>
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <td>lng</td>
+          <td>locale</td>
+          <td>vars</td>
+          <td>output</td>
+        </tr>
+      </thead>
+      <tbody id="output"></tbody>
+    </table>
+    <script type="application/javascript">
+      function getLng() {
+        return document.getElementById('lng').value
+      }
+      function switchLanguage(lng, cb) {
+        document.getElementById('lng').value = lng
+        var script = document.createElement('script')
+        script.type = 'application/javascript'
+        script.src = './lng/' + lng + '.js'
+        script.onload = cb
+        script.onerror = function() {
+          alert('Failed to load lng="' + lng + '" -- check the console')
+        }
+        document.head.appendChild(script)
+      }
+      function onSwitch(event) {
+        event.preventDefault()
+        switchLanguage(getLng())
+      }
+      document.getElementById('switch').addEventListener('submit', onSwitch)
+      function run(cb) {
+        var lng = getLng()
+        var output = document.getElementById('output')
+        window.location.hash =
+          'locales=' +
+          encodeURIComponent(document.getElementById('locales').value.trim())
+        document
+          .getElementById('locales')
+          .value.trim()
+          .split('\n')
+          .forEach(function(entry) {
+            var pos = entry.indexOf(',')
+            var locale = entry.slice(0, pos).trim()
+            var vars = entry.slice(pos + 1)
+            var out = window.translate(locale, JSON.parse(vars))
+            var tr = document.createElement('tr')
+            tr.innerHTML =
+              '<td>' +
+              lng +
+              '</td>' +
+              '<td>' +
+              locale +
+              '</td>' +
+              '<td>' +
+              vars +
+              '</td>' +
+              '<td>' +
+              out +
+              '</td>'
+            output.appendChild(tr)
+          })
+        if (cb) cb()
+      }
+      function onRun(event) {
+        event.preventDefault()
+        run()
+      }
+      document.getElementById('run').addEventListener('submit', onRun)
+
+      function main() {
+        var locales = window.location.hash.slice('#locales='.length)
+        if (locales) {
+          document.getElementById('locales').value = decodeURIComponent(locales)
+        }
+        var fifo = window.location.search.slice('?run='.length).split(',')
+
+        function next() {
+          var lng = fifo.shift()
+          if (!lng) return
+          switchLanguage(lng, function() {
+            run(next)
+          })
+        }
+        next()
+      }
+      main()
+    </script>
+  </body>
+</html>
