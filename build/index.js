@@ -1,4 +1,4 @@
-const fs = require('fs')
+const { promises: fs } = require('fs')
 const Path = require('path')
 const Generator = require('./generator')
 const getInflatedLocales = require('./inflate')
@@ -6,32 +6,30 @@ const getInflatedLocales = require('./inflate')
 const SOURCE_DIRECTORY = `${__dirname}/../locales/`
 const TARGET_DIRECTORY = `${__dirname}/../lng`
 
-function createTargetDirectory() {
-  mkdirP(TARGET_DIRECTORY)
+async function createTargetDirectory() {
+  return mkdirP(TARGET_DIRECTORY)
 }
 
-function getAvailableLngCodes() {
-  return fs.readdirSync(SOURCE_DIRECTORY).map(stripExtension)
+async function getAvailableLngCodes() {
+  return (await fs.readdir(SOURCE_DIRECTORY)).map(stripExtension)
 }
 
-function persistInflatedLocalesToDisk(lng, inflatedLocales) {
+async function persistInflatedLocalesToDisk(lng, inflatedLocales) {
   const blob = Generator.generateModule(inflatedLocales)
-  fs.writeFileSync(`${TARGET_DIRECTORY}/${lng}.js`, blob)
+  await fs.writeFile(`${TARGET_DIRECTORY}/${lng}.js`, blob)
 }
 
-function processLng(lng) {
-  persistInflatedLocalesToDisk(lng, getInflatedLocales(lng))
+async function processLng(lng) {
+  await persistInflatedLocalesToDisk(lng, await getInflatedLocales(lng))
 }
 
-function main() {
-  createTargetDirectory()
-  getAvailableLngCodes().forEach(processLng)
-}
+;(async function main() {
+  await createTargetDirectory()
+  await Promise.all((await getAvailableLngCodes()).map(processLng))
+})()
 
-main()
-
-function mkdirP(path) {
-  fs.mkdirSync(path, { recursive: true })
+async function mkdirP(path) {
+  return fs.mkdir(path, { recursive: true })
 }
 function stripExtension(file) {
   return Path.basename(file, '.json')
