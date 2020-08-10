@@ -27,8 +27,8 @@ function initMapWrapper(LOCALES = new Map()) {
   }
 }
 
-function stripComments(blob) {
-  return blob.replace(/\n\s+\/\/.+/g, '')
+function serializeFunction(fn = function() {}) {
+  return fn.toString().replace(/\n\s+\/\/.+/g, '')
 }
 
 module.exports = {
@@ -40,12 +40,12 @@ module.exports = {
     // use ES5 syntax
     return `'use strict';
 (function () {
-  ${stripComments(translateWrapper().toString())}
-  translate.has = ${hasLocaleWrapper().toString()}
+  ${serializeFunction(translateWrapper())}
+  translate.has = ${serializeFunction(hasLocaleWrapper())}
   var FIELDS=${FIELDS.toString()}
   var LOCALES=new Map()
   initMap(${JSON.stringify(Array.from(inflatedLocalesMap.entries()))})
-  ${stripComments(initMapWrapper().toString())}
+  ${serializeFunction(initMapWrapper())}
   if (typeof window !== 'undefined') {
     window.t = window.translate = translate
   } else {
