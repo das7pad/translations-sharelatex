@@ -17,12 +17,23 @@ function hasLocaleWrapper(LOCALES = new Map()) {
   }
 }
 
+function initMapWrapper(LOCALES = new Map()) {
+  return function initMap(iterable) {
+    // IE11 does not have 'new Map(iterable)' support.
+    // Fallback/Pony-fill to manual setting in all environments.
+    iterable.forEach(function(keyLocalePair) {
+      LOCALES.set.apply(LOCALES, keyLocalePair)
+    })
+  }
+}
+
 function stripComments(blob) {
   return blob.replace(/\n\s+\/\/.+/g, '')
 }
 
 module.exports = {
   hasLocaleWrapper,
+  initMapWrapper,
   translateWrapper,
   generateModule(inflatedLocalesMap) {
     // Browser and NodeJS compatible module
@@ -32,9 +43,9 @@ module.exports = {
   ${stripComments(translateWrapper().toString())}
   translate.has = ${hasLocaleWrapper().toString()}
   var FIELDS=${FIELDS.toString()}
-  var LOCALES=new Map(${JSON.stringify(
-    Array.from(inflatedLocalesMap.entries())
-  )})
+  var LOCALES=new Map()
+  initMap(${JSON.stringify(Array.from(inflatedLocalesMap.entries()))})
+  ${stripComments(initMapWrapper().toString())}
   if (typeof window !== 'undefined') {
     window.t = window.translate = translate
   } else {
